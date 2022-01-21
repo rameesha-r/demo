@@ -1,0 +1,77 @@
+#####Script to download build Artifact
+#$artifactDestinationFolder = "C:\BackUpScripts\test"
+#$dropArchiveDestination = Join-path $artifactDestinationFolder "drop.zip"
+function GetUrl() {
+    param(
+        [string]$orgUrl, 
+        [hashtable]$header, 
+        [string]$AreaId
+    )
+
+    # Build the URL for calling the org-level Resource Areas REST API for the RM APIs
+    $orgResourceAreasUrl = [string]::Format("{0}/_apis/resourceAreas/{1}?api-preview=5.0-preview.1", $orgUrl, $AreaId)
+
+    # Do a GET on this URL (this returns an object with a "locationUrl" field)
+    $results = Invoke-RestMethod -Uri $orgResourceAreasUrl -Headers $header
+
+    # The "locationUrl" field reflects the correct base URL for RM REST API calls
+    if ("null" -eq $results) {
+        $areaUrl = $orgUrl
+    }
+    else {
+        $areaUrl = $results.locationUrl
+    }
+
+    return $areaUrl
+}
+
+$orgUrl = "https://dev.azure.com/azarvin/"
+$personalToken = "bcpauzaygbsg2gtizodt6ao5nsxgttt7r4vpyxgemqnz2elnk3za"
+
+Write-Host "Initialize authentication context" -ForegroundColor Yellow
+$token = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($personalToken)"))
+$header = @{
+    'authorization' = "Basic $token"
+     }
+
+# Area ids
+# https://docs.microsoft.com/en-us/azure/devops/extend/develop/work-with-urls?view=azure-devops&tabs=http&viewFallbackFrom=vsts#resource-area-ids-reference
+
+# DEMO of Create Projects
+Write-Host "Demo Starts here"
+# Core Area
+$coreAreaId = "79134C72-4A58-4B42-976C-04E7115F32BF"
+$tfsBaseUrl = GetUrl -orgUrl $orgUrl -header $header -AreaId $coreAreaId
+#https://docs.microsoft.com/en-us/rest/api/azure/devops/build/artifacts/list?view=azure-devops-rest-5.1
+$projectsUrl = "$($tfsBaseUrl)/_apis/projects?api-version=5.1"
+$projects = Invoke-WebRequest -Uri $projectsUrl -Method Get -Headers $header
+Write-Host $projects
+#$Any_variable = "$_"
+# Post Request Construct
+
+
+$body = @"
+{
+"name" : "MrFunny",
+"description": "project description is Shubham will never speak",
+"capabilities": {
+"versioncontrol": {
+"sourceControlType": "Git"
+},
+"processTemplate" : {
+"templateTypeId": "6b724908-ef14-45cf-84f8-768b5384da45"
+}
+}
+}
+"@
+
+Invoke-RestMethod -Method POST -ContentType application/json -Uri $projectsUrl -Headers $header -Body $Body
+
+
+
+
+
+
+
+
+
